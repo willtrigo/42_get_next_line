@@ -6,64 +6,56 @@
 /*   By: dande-je <dande-je@student.42sp.org.br>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/31 06:22:34 by dande-je          #+#    #+#             */
-/*   Updated: 2023/09/01 08:02:23 by dande-je         ###   ########.fr       */
+/*   Updated: 2023/09/13 16:00:33 by dande-je         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
 
-size_t	ft_strlen(const char *str)
+void	ft_add_buf(t_buf_hist **buf_hist, t_buf_hist *buf_new)
 {
-	int	i;
+	t_buf_hist	*buf_hist_temp;
 
-	i = 0;
-	while (str[i])
-		i++;
-	return (i);
-}
-
-char	*ft_strjoin(char const *s1, char const *s2)
-{
-	char	*str;
-	size_t	s1_len;
-	size_t	s2_len;
-
-	s1_len = ft_strlen(s1);
-	s2_len = ft_strlen(s2);
-	str = malloc((s1_len + s2_len + 1) * sizeof(char));
-	if (str == NULL)
-		return (NULL);
-	ft_strlcpy(str, s1, s1_len + 1);
-	ft_strlcpy(&str[s1_len], s2, s2_len + 1);
-	return (str);
-}
-
-size_t	ft_strlcpy(char *dst, const char *src, size_t size)
-{
-	size_t	i;
-
-	i = 0;
-	if (size == 0)
-		return (ft_strlen(src));
-	while (i < (size - 1) && src[i])
+	if (buf_new)
 	{
-		dst[i] = src[i];
-		i++;
+		if (!*buf_hist)
+			*buf_hist = buf_new;
+		else
+		{
+			buf_hist_temp = *buf_hist;
+			while (buf_hist_temp->next)
+				buf_hist_temp = buf_hist_temp->next;
+			buf_hist_temp->next = buf_new;
+		}
 	}
-	dst[i] = '\0';
-	return (ft_strlen(src));
 }
 
-void	*ft_calloc(size_t nmemb, size_t size)
+t_buf_hist	*ft_buf_new(char c)
 {
-	void	*ptr_new;
-	size_t	calloc_len;
+	t_buf_hist	*buf_new;
 
-	ptr_new = NULL;
-	calloc_len = nmemb * size;
-	if (!nmemb || !size || !(nmemb != calloc_len / size))
-		ptr_new = malloc(calloc_len);
-	if (ptr_new)
-		ft_bzero(ptr_new, calloc_len);
-	return (ptr_new);
+	buf_new = malloc(sizeof(t_buf_hist));
+	if (!buf_new)
+	{
+		free(buf_new);
+		return (NULL);
+	}
+	buf_new->buf_char = c;
+	buf_new->next = NULL;
+	return (buf_new);
+}
+
+char	*free_buf(t_buf_hist *buf)
+{
+	t_buf_hist	*buf_temp;
+
+	buf_temp = buf;
+	while (buf_temp)
+	{
+		buf_temp = buf_temp->next;
+		free(buf);
+		buf = buf_temp;
+	}
+	buf_temp = NULL;
+	return (NULL);
 }
