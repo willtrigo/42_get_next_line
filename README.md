@@ -14,3 +14,15 @@
 </picture>
 
 ##
+
+The **get_next_line** project is a fundamental project that aims to develop a function capable of reading a line from a file descriptor. It allows you to retrieve the next line from a file, one line at a time, without reading the entire file at once. The function is designed to be memory efficient and work seamlessly with multiple file descriptors.
+
+## Usage
+
+When compiling `get_next_line` or its **bonus** version, be sure to include the following flags
+
+```sh
+$ gcc -Wall -Wextra -Werror -D BUFFER_SIZE=xxx <files>.c
+```
+
+Where the `xxx` can be substituted by the number of bytes read at a time into the buffer for the `read` function.
