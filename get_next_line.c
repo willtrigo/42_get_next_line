@@ -6,85 +6,111 @@
 /*   By: dande-je <dande-je@student.42sp.org.br>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/31 06:22:06 by dande-je          #+#    #+#             */
-/*   Updated: 2023/09/13 16:23:09 by dande-je         ###   ########.fr       */
+/*   Updated: 2026/06/15 21:07:35 by dande-je         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+/**
+ * @file get_next_line.c
+ * @brief Implementation of the get_next_line function.
+ */
+
 #include "get_next_line.h"
 
-char	*ft_read_buf(t_file_info *file);
-char	*ft_print_line(t_file_info *file);
+static char	*ft_accumulate(t_file *file);
+static char	*ft_build_line(t_file *file);
 
+/**
+ * @brief Main entry point: reads the next line from a file descriptor.
+ *
+ * Uses static storage per file descriptor to maintain state across calls.
+ *
+ * @param fd File descriptor to read from.
+ * @return The next line (newly allocated), or NULL on error/EOF.
+ */
 char	*get_next_line(int fd)
 {
-	static t_file_info	file[FD_OPEN_LIMIT];
+	static t_file	files[FD_OPEN_LIMIT];
+	t_file			*file;
 
-	if ((!fd || fd > FD_OPEN_LIMIT || fd < 0) && fd != 0)
+	if (fd < 0 || fd >= FD_OPEN_LIMIT)
 		return (NULL);
-	if (file[fd].i >= file[fd].read || file[fd].i == 0)
+	file = &files[fd];
+	file->fd = fd;
+	if (file->cursor >= file->bytes_read)
 	{
-		file[fd].i = 0;
-		while (file[fd].i < BUFFER_SIZE)
-			file[fd].buf[file[fd].i++] = '\0';
-		file[fd].i = 0;
-		file[fd].len = 0;
-		file[fd].fd = fd;
-		file[fd].buf_hist = NULL;
-		file[fd].read = read(fd, file[fd].buf, BUFFER_SIZE);
-		if (file[fd].read == FAIL)
-			return (free_buf(file[fd].buf_hist));
-	}
-	if (file[fd].read <= 0 || file[fd].buf[file[fd].i] == '\0')
-		return (free_buf(file[fd].buf_hist));
-	if (file[fd].read < 0 && file[fd].buf_hist)
-		return (free_buf(file[fd].buf_hist));
-	return (ft_read_buf(&file[fd]));
-}
-
-char	*ft_read_buf(t_file_info *file)
-{
-	file->len = 0;
-	while (file->read > 0)
-	{
-		ft_add_buf(&file->buf_hist, ft_buf_new(file->buf[file->i]));
-		if (file->buf[file->i] == '\n' || file->buf[file->i] == '\0')
-			break ;
-		file->i++;
-		file->len++;
-		if (file->i >= file->read)
+		file->cursor = 0;
+		file->bytes_read = read(fd, file->raw_buf, BUFFER_SIZE);
+		if (file->bytes_read <= 0)
 		{
-			file->i = 0;
-			file->read = read(file->fd, file->buf, BUFFER_SIZE);
-			if (file->read == FAIL)
-				return (free_buf(file->buf_hist));
+			if (file->history)
+				return (ft_build_line(file));
+			return (NULL);
 		}
 	}
-	file->i++;
-	file->len++;
-	return (ft_print_line(file));
+	return (ft_accumulate(file));
 }
 
-char	*ft_print_line(t_file_info *file)
+/**
+ * @brief Accumulates characters into the history linked list until a newline
+ * or EOF.
+ *
+ * @param file Pointer to the file state structure.
+ * @return The complete line, or NULL if memory allocation failed.
+ */
+static char	*ft_accumulate(t_file *file)
 {
-	t_buf_hist	*buf_hist_temp;
-	char		*line;
-	size_t		i;
+	t_node	*node;
 
-	line = malloc(sizeof(char) * (file->len + NULL_BYTE));
-	if (!(line || file->fd) && file->fd != 0)
+	while (file->bytes_read > 0)
 	{
-		free(line);
-		return (NULL);
+		node = ft_node_new(file->raw_buf[file->cursor]);
+		if (!node)
+			return (ft_flush_history(&file->history));
+		ft_node_append(&file->history, node);
+		file->line_len++;
+		if (file->raw_buf[file->cursor++] == '\n')
+			break ;
+		if (file->cursor >= file->bytes_read)
+		{
+			file->cursor = 0;
+			file->bytes_read = read(file->fd, file->raw_buf, BUFFER_SIZE);
+			if (file->bytes_read == READ_ERROR)
+				return (ft_flush_history(&file->history));
+		}
 	}
+	return (ft_build_line(file));
+}
+
+/**
+ * @brief Builds the final string from the linked list and frees the nodes.
+ *
+ * @param file Pointer to the file state structure.
+ * @return Newly allocated string containing the line, or NULL on error.
+ */
+static char	*ft_build_line(t_file *file)
+{
+	char	*line;
+	t_node	*current;
+	t_node	*next;
+	size_t	i;
+
+	if (!file->history)
+		return (NULL);
+	line = malloc(sizeof(char) * (file->line_len + NULL_TERMINATOR));
+	if (!line)
+		return (ft_flush_history(&file->history));
 	i = 0;
-	buf_hist_temp = NULL;
-	while (file->buf_hist)
+	current = file->history;
+	while (current)
 	{
-		buf_hist_temp = file->buf_hist->next;
-		line[i++] = file->buf_hist->buf_char;
-		free(file->buf_hist);
-		file->buf_hist = buf_hist_temp;
+		next = current->next;
+		line[i++] = current->chr;
+		free(current);
+		current = next;
 	}
 	line[i] = '\0';
+	file->history = NULL;
+	file->line_len = 0;
 	return (line);
 }

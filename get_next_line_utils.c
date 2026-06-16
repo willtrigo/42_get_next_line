@@ -6,56 +6,76 @@
 /*   By: dande-je <dande-je@student.42sp.org.br>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/08/31 06:22:34 by dande-je          #+#    #+#             */
-/*   Updated: 2023/09/13 16:00:33 by dande-je         ###   ########.fr       */
+/*   Updated: 2026/06/15 22:35:35 by dande-je         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+/**
+ * @file get_next_line_utils.c
+ * @brief Utility functions for get_next_line.
+ */
+
 #include "get_next_line.h"
 
-void	ft_add_buf(t_buf_hist **buf_hist, t_buf_hist *buf_new)
+/**
+ * @brief Appends a node to the end of the linked list.
+ *
+ * @param history Pointer to the head of the list.
+ * @param node Node to append.
+ */
+void	ft_node_append(t_node **history, t_node *node)
 {
-	t_buf_hist	*buf_hist_temp;
+	t_node	*tail;
 
-	if (buf_new)
+	if (!node)
+		return ;
+	if (!*history)
 	{
-		if (!*buf_hist)
-			*buf_hist = buf_new;
-		else
-		{
-			buf_hist_temp = *buf_hist;
-			while (buf_hist_temp->next)
-				buf_hist_temp = buf_hist_temp->next;
-			buf_hist_temp->next = buf_new;
-		}
+		*history = node;
+		return ;
 	}
+	tail = *history;
+	while (tail->next)
+		tail = tail->next;
+	tail->next = node;
 }
 
-t_buf_hist	*ft_buf_new(char c)
+/**
+ * @brief Creates a new node containing a single character.
+ *
+ * @param chr Character to store.
+ * @return Pointer to the new node, or NULL on allocation failure.
+ */
+t_node	*ft_node_new(char chr)
 {
-	t_buf_hist	*buf_new;
+	t_node	*node;
 
-	buf_new = malloc(sizeof(t_buf_hist));
-	if (!buf_new)
-	{
-		free(buf_new);
+	node = malloc(sizeof(t_node));
+	if (!node)
 		return (NULL);
-	}
-	buf_new->buf_char = c;
-	buf_new->next = NULL;
-	return (buf_new);
+	node->chr = chr;
+	node->next = NULL;
+	return (node);
 }
 
-char	*free_buf(t_buf_hist *buf)
+/**
+ * @brief Frees all nodes in the history list and resets the pointer.
+ *
+ * @param history Pointer to the head pointer of the list.
+ * @return Always returns NULL (for convenience in error paths).
+ */
+char	*ft_flush_history(t_node **history)
 {
-	t_buf_hist	*buf_temp;
+	t_node	*next;
+	t_node	*current;
 
-	buf_temp = buf;
-	while (buf_temp)
+	current = *history;
+	while (current)
 	{
-		buf_temp = buf_temp->next;
-		free(buf);
-		buf = buf_temp;
+		next = current->next;
+		free(current);
+		current = next;
 	}
-	buf_temp = NULL;
+	*history = NULL;
 	return (NULL);
 }
