@@ -68,8 +68,7 @@ cc -Wall -Wextra -Werror -D BUFFER_SIZE=1000 get_next_line_bonus.c get_next_line
 
 When compiling `get_next_line` or its **bonus** version, be sure to include the following flags
 
-```sh
-c
+```c
 #include "get_next_line.h"
 
 int main(void)
